@@ -351,6 +351,20 @@ class OpenMLDataset(OpenMLBase):
 
         def decode_arff(fh):
             decoder = arff.ArffDecoder()
+
+            # handle convert timestamps to unix ts because arff doesn't support normal timestamps
+            import re
+            from datetime import datetime as dt
+            fh = fh.read()
+            fh = fh.replace("Timestamp date", "timestamp numeric", RegexOptions.IgnoreCase)
+            while True:
+                p = re.search(r"\'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\'", fh)
+                if p is None:
+                    break
+                unix_ts = dt.strptime(fh[p.start():p.end()], "\'%Y-%m-%dT%H:%M:%S\'") 
+                unix_ts = str(dt.timestamp(dt_form)) 
+                fh = fh[:p.start()] + unix_ts + fh[p.end():] 
+
             return decoder.decode(fh, encode_nominal=True, return_type=return_type)
 
         if filename[-3:] == ".gz":
